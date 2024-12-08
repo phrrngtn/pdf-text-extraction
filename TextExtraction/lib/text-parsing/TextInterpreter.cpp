@@ -80,6 +80,7 @@ bool TextInterpeter::OnTextElementComplete(const TextElement& inTextElement) {
 
         // Determine a decoder for the text font
         FontDecoder* decoder = GetDecoderForFont(item.textState.fontRef.GetPtr());
+
         if(!decoder)
             continue;
 
@@ -138,6 +139,7 @@ bool TextInterpeter::OnTextElementComplete(const TextElement& inTextElement) {
 
                 ParsedTextPlacement placement(
                         result.asText,
+                        decoder->fontID,
                         matrixBuffer,
                         localBBox,
                         globalBBox,
@@ -189,8 +191,8 @@ bool TextInterpeter::OnResourcesRead(const Resources& inResources, IInterpreterC
                 PDFObjectCastPtr<PDFDictionary> fontDict = inContext->GetParser()->ParseNewObject(id);
                 if(!fontDict)
                     continue; // ignore
-                refrencedFontDecoders.insert(ObjectIDTypeToFontDecoderMap::value_type(id, FontDecoder(inContext->GetParser(), fontDict.GetPtr())));
-            }        
+                refrencedFontDecoders.insert(ObjectIDTypeToFontDecoderMap::value_type(id, FontDecoder(inContext->GetParser(), fontDict.GetPtr(),id)));
+            }
         }
     }
 

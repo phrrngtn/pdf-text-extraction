@@ -1,6 +1,7 @@
 #pragma once
 
 #include "IOBasicTypes.h"
+#include "ObjectsBasicTypes.h"
 #include "Translation.h"
 #include "../pdf-writer-enhancers/Bytes.h"
 #include "../graphs/Result.h"
@@ -33,6 +34,7 @@ struct FontDecoderResult {
 class FontDecoder {
 
 public:
+    FontDecoder(PDFParser* inParser, PDFDictionary* inFont, ObjectIDType inFontID);
     FontDecoder(PDFParser* inParser, PDFDictionary* inFont);
 
     FontDecoderResult Translate(const ByteList& inAsBytes);
@@ -41,6 +43,13 @@ public:
     double ascent;
     double descent;
     double spaceWidth;
+    std::string familyName;
+    std::string fontName;
+    std::string fontStretch;
+    int fontWeight;
+    int fontFlags;
+    ObjectIDType fontID;
+
 private:
     bool isSimpleFont;
     bool hasToUnicode;
@@ -52,6 +61,8 @@ private:
     double monospaceWidth;
     ULongToDoubleMap widths;
     double defaultWidth;
+
+
 
     void ParseFontData(PDFParser* inParser, PDFDictionary* inFont);
     void ParseToUnicodeMap(PDFParser* inParser, PDFStreamInput* inUnicodeMapStream);

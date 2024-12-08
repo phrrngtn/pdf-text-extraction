@@ -213,24 +213,20 @@ int main(int argc, char* argv[])
             }    
 
             if(status == eSuccess) {
-                if(writeToOutputFile) {
-                    OutputFile outputFile;
-                    status = outputFile.OpenFile(outputFilePath);
-                    if (status != eSuccess) {
-                        cerr << "Error: Cannot open target file path for writing in" << outputFilePath.c_str() << endl;
+                ParsedTextPlacementListList::iterator itPages = textExtraction.textsForPages.begin();
+                for(; itPages != textExtraction.textsForPages.end();++itPages) {
+                    ParsedTextPlacementList::iterator itTp = itPages->begin();
+                    for(;itTp!=itPages->end(); ++itTp) {
+                        double *Bbox;
+                        Bbox = itTp->globalBbox;
+                        printf("%lu [%7.3f, %7.3f, %7.3f, %7.3f] %s\n", 
+                                itTp->fontID,
+                                Bbox[0],
+                                Bbox[1],
+                                Bbox[2],
+                                Bbox[3],
+                                itTp->text.c_str());
                     }
-                    else {
-                        outputFile.GetOutputStream()->Write(scUTF8Bom,3);
-                        string result = textExtraction.GetResultsAsText(bidiFlag, spacing);
-                        InputStringStream textStream(result);
-                        OutputStreamTraits streamCopier((IByteWriter*)outputFile.GetOutputStream());
-                        status = streamCopier.CopyToOutputStream(&textStream);
-                    }
-                    cout <<"Wrote text to " << outputFilePath.c_str() << endl;
-
-                }
-                else if(!quiet) {
-                    cout<<textExtraction.GetResultsAsText(bidiFlag, spacing).c_str();
                 }
             }
         }

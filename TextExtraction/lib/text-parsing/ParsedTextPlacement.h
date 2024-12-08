@@ -2,12 +2,15 @@
 
 #include "../math/Transformations.h"
 
+#include "ObjectsBasicTypes.h"
+
 #include <string>
 #include <list>
 
 struct ParsedTextPlacement {
     ParsedTextPlacement(
         const std::string& inText,
+        ObjectIDType inFontID,
         const double (&inMatrix)[6],
         const double (&inLocalBox)[4],
         const double (&inGlobalBox)[4],
@@ -15,6 +18,7 @@ struct ParsedTextPlacement {
         const double (&inGlobalSpaceWidth)[2]
     ) {
         text = inText;
+        fontID = inFontID;
         CopyMatrix(inMatrix, matrix);
         CopyBox(inLocalBox, localBbox);
         CopyBox(inGlobalBox, globalBbox);
@@ -23,6 +27,7 @@ struct ParsedTextPlacement {
     }
 
     std::string text;
+    ObjectIDType fontID;
     double matrix[6];
     double localBbox[4];
     double globalBbox[4];

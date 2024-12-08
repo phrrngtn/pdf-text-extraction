@@ -16,8 +16,9 @@
 
 #include "StandardFontsDimensions.h"
 #include "Encoding.h"
+#include <PDFIndirectObjectReference.h>
 
-
+#include "iostream"
 using namespace std;
 using namespace PDFHummus;
 
@@ -139,9 +140,13 @@ bool UnicodeMapReader::OnOperation(const std::string& inOperation, const PDFObje
     return true;
 }
 
+FontDecoder::FontDecoder(PDFParser* inParser, PDFDictionary* inFont, ObjectIDType inFontID) {
+    fontID=inFontID;
+    ParseFontData(inParser, inFont);
+}
 
 FontDecoder::FontDecoder(PDFParser* inParser, PDFDictionary* inFont) {
-
+    fontID=(ObjectIDType)0;
     ParseFontData(inParser, inFont);
 }
 
@@ -219,12 +224,32 @@ void FontDecoder::ParseFontDescriptor(PDFParser* inParser, PDFDictionary* inFont
     if(!!fontDescriptor) {
         // complete info with font descriptor
         RefCountPtr<PDFObject> descentObject = inParser->QueryDictionaryObject(fontDescriptor.GetPtr(),"Descent");
-        RefCountPtr<PDFObject> ascentObject = inParser->QueryDictionaryObject(fontDescriptor.GetPtr(),"Ascent"); 
-        RefCountPtr<PDFObject> missingWidthObject = inParser->QueryDictionaryObject(fontDescriptor.GetPtr(),"MissingWidth"); 
+        RefCountPtr<PDFObject> ascentObject = inParser->QueryDictionaryObject(fontDescriptor.GetPtr(),"Ascent");
+        RefCountPtr<PDFObject> missingWidthObject = inParser->QueryDictionaryObject(fontDescriptor.GetPtr(),"MissingWidth");
+        RefCountPtr<PDFObject> familyObject = inParser->QueryDictionaryObject(fontDescriptor.GetPtr(),"FontFamily");
+        RefCountPtr<PDFObject> nameObject = inParser->QueryDictionaryObject(fontDescriptor.GetPtr(),"FontName");
+        RefCountPtr<PDFObject> stretchObject = inParser->QueryDictionaryObject(fontDescriptor.GetPtr(),"FontStretch");
+        RefCountPtr<PDFObject> weightObject = inParser->QueryDictionaryObject(fontDescriptor.GetPtr(),"FontWeight");
+        RefCountPtr<PDFObject> flagObject = inParser->QueryDictionaryObject(fontDescriptor.GetPtr(),"Flags");
+        RefCountPtr<PDFObject> bboxObject = inParser->QueryDictionaryObject(fontDescriptor.GetPtr(),"FontBBox");
+
         if(!!descentObject)
             descent = ParsedPrimitiveHelper(descentObject.GetPtr()).GetAsDouble();
         if(!!ascentObject)
-            ascent = ParsedPrimitiveHelper(ascentObject.GetPtr()).GetAsDouble(); 
+            ascent = ParsedPrimitiveHelper(ascentObject.GetPtr()).GetAsDouble();
+        if(!!familyObject)
+            familyName=ParsedPrimitiveHelper(familyObject.GetPtr()).ToString();
+
+        if(!!nameObject)
+            fontName=ParsedPrimitiveHelper(nameObject.GetPtr()).ToString();
+
+        if(!!stretchObject)
+            fontStretch=ParsedPrimitiveHelper(stretchObject.GetPtr()).ToString();
+        if(!!weightObject)
+            fontWeight=ParsedPrimitiveHelper(weightObject.GetPtr()).GetAsInteger();
+        if(!!flagObject)
+            fontFlags=ParsedPrimitiveHelper(flagObject.GetPtr()).GetAsInteger();
+
         if(!!missingWidthObject) {
             defaultWidth = ParsedPrimitiveHelper(missingWidthObject.GetPtr()).GetAsDouble(); 
         }
