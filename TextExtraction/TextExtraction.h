@@ -18,6 +18,7 @@ class PDFParser;
 
 typedef std::list<ParsedTextPlacementList> ParsedTextPlacementListList;
 typedef std::list<ExtractionWarning> ExtractionWarningList;
+typedef std::list<unsigned long> PageNumberList;
 
 
 class TextExtraction : public ITextInterpreterHandler, IGraphicContentInterpreterHandler {
@@ -33,6 +34,9 @@ class TextExtraction : public ITextInterpreterHandler, IGraphicContentInterprete
 
         // end result construct
         ParsedTextPlacementListList textsForPages;
+        PageNumberList pageNumbers;
+        FontDescriptionMap fontMap;
+        
 
         // just descrypt input file to its easier to read its contnets
         PDFHummus::EStatusCode DecryptPDFForDebugging(

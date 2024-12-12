@@ -219,6 +219,10 @@ void FontDecoder::ParseSimpleFontEncoding(PDFParser* inParser, PDFObject* inEnco
     }
 }
 
+FontDescription * FontDecoder::GetFontDescription(){
+    return new FontDescription(fontID,ascent,descent,spaceWidth,familyName,fontName,fontStretch,fontWeight,fontFlags);
+}
+
 void FontDecoder::ParseFontDescriptor(PDFParser* inParser, PDFDictionary* inFont) {
     PDFObjectCastPtr<PDFDictionary> fontDescriptor = inParser->QueryDictionaryObject(inFont,"FontDescriptor");
     if(!!fontDescriptor) {

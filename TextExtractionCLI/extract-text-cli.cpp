@@ -214,19 +214,28 @@ int main(int argc, char* argv[])
 
             if(status == eSuccess) {
                 ParsedTextPlacementListList::iterator itPages = textExtraction.textsForPages.begin();
+                PageNumberList::iterator itPageNumber = textExtraction.pageNumbers.begin();
+                FontDescriptionMap::iterator itFontDescription = textExtraction.fontMap.begin();
+                for(; itFontDescription!= textExtraction.fontMap.end(); ++itFontDescription){
+                    FontDescription *fd = itFontDescription->second;
+                    cout << itFontDescription->first << " "
+                        << fd->familyName << " " << fd->fontName << endl;
+                }
                 for(; itPages != textExtraction.textsForPages.end();++itPages) {
                     ParsedTextPlacementList::iterator itTp = itPages->begin();
                     for(;itTp!=itPages->end(); ++itTp) {
                         double *Bbox;
                         Bbox = itTp->globalBbox;
-                        printf("%lu [%7.3f, %7.3f, %7.3f, %7.3f] %s\n", 
+                        printf("%lu %lu [%7.3f, %7.3f, %7.3f, %7.3f] %s\n",
+                                *itPageNumber,
                                 itTp->fontID,
-                                Bbox[0],
-                                Bbox[1],
-                                Bbox[2],
-                                Bbox[3],
+                                Bbox[0], // horizontal coordinate
+                                Bbox[1], // vertical coordinate
+                                Bbox[2]-Bbox[0], // width
+                                Bbox[3]-Bbox[1], // height
                                 itTp->text.c_str());
                     }
+                    ++itPageNumber;
                 }
             }
         }

@@ -54,6 +54,14 @@ FontDecoder* TextInterpeter::GetDecoderForFont(PDFObject* inFontReference) {
     return NULL;
 }
 
+void TextInterpeter::GetFontDescriptions(FontDescriptionMap& fontMap){
+    ObjectIDTypeToFontDecoderMap::iterator it = refrencedFontDecoders.begin();
+    for(; it!=refrencedFontDecoders.end(); ++it) {
+        FontDecoder decoder=it->second;
+        fontMap[decoder.fontID]=decoder.GetFontDescription();
+    }
+}
+
 bool TextInterpeter::OnTextElementComplete(const TextElement& inTextElement) {
     if(!handler)
         return true;

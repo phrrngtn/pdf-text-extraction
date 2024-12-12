@@ -2,6 +2,7 @@
 
 #include "../graphic-content-parsing/TextElement.h"
 #include "../graphic-content-parsing/Resources.h"
+#include "../font-translation/FontDecoder.h"
 
 #include "ITextInterpreterHandler.h"
 
@@ -39,13 +40,15 @@ class TextInterpeter {
         bool OnResourcesRead(const Resources& inResources, IInterpreterContext* inContext);
 
         void ResetInterpretationState();
+        void GetFontDescriptions(FontDescriptionMap&);
+
     private:
         ITextInterpreterHandler* handler;
 
         // font decoders parsed data
         ObjectIDTypeToFontDecoderMap refrencedFontDecoders;
         PDFObjectToFontDecoderMap embeddedFontDecoders;
-        
+
         FontDecoder* GetDecoderForFont(PDFObject* inFontReference);     
 
 };

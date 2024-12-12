@@ -39,7 +39,9 @@ bool TextExtraction::OnPathPainted(const PathElement& inPathElement) {
 
 
 bool TextExtraction::OnResourcesRead(const Resources& inResources, IInterpreterContext* inContext) {
-    return textInterpeter.OnResourcesRead(inResources, inContext);
+    bool rv = textInterpeter.OnResourcesRead(inResources, inContext);
+    textInterpeter.GetFontDescriptions(fontMap);
+    return rv;
 }
 
 EStatusCode TextExtraction::ExtractTextPlacements(PDFParser* inParser, long inStartPage, long inEndPage) {
@@ -69,6 +71,7 @@ EStatusCode TextExtraction::ExtractTextPlacements(PDFParser* inParser, long inSt
         currentPageScopeBox[3] = mediaBox.UpperRightY;
 
         textsForPages.push_back(ParsedTextPlacementList());
+        pageNumbers.push_back(i);
         // the interpreter will trigger the textInterpreter which in turn will trigger this object to collect text elements
         interpreter.InterpretPageContents(inParser, pageObject.GetPtr(), this);  
     }    

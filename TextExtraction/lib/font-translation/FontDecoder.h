@@ -31,6 +31,43 @@ struct FontDecoderResult {
     ETranslationMethod translationMethod;
 };
 
+
+
+struct FontDescription
+{
+    ObjectIDType fontID;
+    double ascent;
+    double descent;
+    double spaceWidth;
+    std::string familyName;
+    std::string fontName;
+    std::string fontStretch;
+    int fontWeight;
+    int fontFlags;
+    FontDescription(
+        ObjectIDType fontID,
+        double ascent,
+        double descent,
+        double spaceWidth,
+        std::string familyName,
+        std::string fontName,
+        std::string fontStretch,
+        int fontWeight,
+        int fontFlags) : fontID(fontID),
+                         ascent(ascent),
+                         descent(descent),
+                         spaceWidth(spaceWidth),
+                         familyName(familyName),
+                         fontName(fontName),
+                         fontStretch(fontStretch),
+                         fontWeight(fontWeight),
+                         fontFlags(fontFlags) {}
+};
+
+typedef std::map<ObjectIDType, FontDescription *> FontDescriptionMap;
+
+
+
 class FontDecoder {
 
 public:
@@ -39,6 +76,8 @@ public:
 
     FontDecoderResult Translate(const ByteList& inAsBytes);
     DispositionResultList ComputeDisplacements(const ByteList& inAsBytes);
+
+    FontDescription *GetFontDescription();
 
     double ascent;
     double descent;
