@@ -156,9 +156,25 @@ bool UnicodeMapReader::OnOperation(const std::string& inOperation, const PDFObje
 }
 
 
-FontDecoder::FontDecoder(PDFParser* inParser, PDFDictionary* inFont) {
-
+FontDecoder::FontDecoder(PDFParser* inParser, PDFDictionary* inFont, ObjectIDType inFontID) {
+    fontID = inFontID;
+    fontWeight = 0;
+    fontFlags = 0;
     ParseFontData(inParser, inFont);
+}
+
+FontInfo FontDecoder::GetFontInfo() const {
+    FontInfo info;
+    info.fontID = fontID;
+    info.familyName = familyName;
+    info.fontName = fontName;
+    info.fontStretch = fontStretch;
+    info.fontWeight = fontWeight;
+    info.fontFlags = fontFlags;
+    info.ascent = ascent;
+    info.descent = descent;
+    info.spaceWidth = spaceWidth;
+    return info;
 }
 
 void FontDecoder::ParseToUnicodeMap(PDFParser* inParser, PDFStreamInput* inUnicodeMapStream) {
@@ -235,13 +251,34 @@ void FontDecoder::ParseFontDescriptor(PDFParser* inParser, PDFDictionary* inFont
     if(!!fontDescriptor) {
         // complete info with font descriptor
         RefCountPtr<PDFObject> descentObject = inParser->QueryDictionaryObject(fontDescriptor.GetPtr(),"Descent");
-        RefCountPtr<PDFObject> ascentObject = inParser->QueryDictionaryObject(fontDescriptor.GetPtr(),"Ascent"); 
-        RefCountPtr<PDFObject> missingWidthObject = inParser->QueryDictionaryObject(fontDescriptor.GetPtr(),"MissingWidth"); 
+        RefCountPtr<PDFObject> ascentObject = inParser->QueryDictionaryObject(fontDescriptor.GetPtr(),"Ascent");
+        RefCountPtr<PDFObject> missingWidthObject = inParser->QueryDictionaryObject(fontDescriptor.GetPtr(),"MissingWidth");
         if(!!descentObject)
             descent = ParsedPrimitiveHelper(descentObject.GetPtr()).GetAsDouble();
         if(!!ascentObject)
-            ascent = ParsedPrimitiveHelper(ascentObject.GetPtr()).GetAsDouble(); 
-        
+            ascent = ParsedPrimitiveHelper(ascentObject.GetPtr()).GetAsDouble();
+
+        // Extract font name metadata
+        PDFObjectCastPtr<PDFName> fontNameObject = inParser->QueryDictionaryObject(fontDescriptor.GetPtr(),"FontName");
+        if(!!fontNameObject)
+            fontName = fontNameObject->GetValue();
+
+        RefCountPtr<PDFObject> fontFamilyObject = inParser->QueryDictionaryObject(fontDescriptor.GetPtr(),"FontFamily");
+        if(!!fontFamilyObject)
+            familyName = ParsedPrimitiveHelper(fontFamilyObject.GetPtr()).ToString();
+
+        RefCountPtr<PDFObject> fontStretchObject = inParser->QueryDictionaryObject(fontDescriptor.GetPtr(),"FontStretch");
+        if(!!fontStretchObject)
+            fontStretch = ParsedPrimitiveHelper(fontStretchObject.GetPtr()).ToString();
+
+        RefCountPtr<PDFObject> fontWeightObject = inParser->QueryDictionaryObject(fontDescriptor.GetPtr(),"FontWeight");
+        if(!!fontWeightObject)
+            fontWeight = (int)ParsedPrimitiveHelper(fontWeightObject.GetPtr()).GetAsInteger();
+
+        RefCountPtr<PDFObject> flagsObject = inParser->QueryDictionaryObject(fontDescriptor.GetPtr(),"Flags");
+        if(!!flagsObject)
+            fontFlags = (int)ParsedPrimitiveHelper(flagsObject.GetPtr()).GetAsInteger();
+
         // Handle malformed fonts with 0 ascent/descent, by falling back on other font metrics
         if(ascent == 0 || descent == 0) {
 
@@ -251,14 +288,14 @@ void FontDecoder::ParseFontDescriptor(PDFParser* inParser, PDFDictionary* inFont
                 if(fontBBox->GetLength() >= 4) {
                     double bboxBottom = ParsedPrimitiveHelper(inParser->QueryArrayObject(fontBBox.GetPtr(), 1)).GetAsDouble();
                     double bboxTop = ParsedPrimitiveHelper(inParser->QueryArrayObject(fontBBox.GetPtr(), 3)).GetAsDouble();
-                    
+
                     if(ascent == 0 && bboxTop > 0)
                         ascent = bboxTop;
                     if(descent == 0 && bboxBottom < 0)
                         descent = bboxBottom;
                 }
             }
-            
+
             // If ascent still 0, try CapHeight as fallback
             if(ascent == 0) {
                 RefCountPtr<PDFObject> capHeightObject = inParser->QueryDictionaryObject(fontDescriptor.GetPtr(),"CapHeight");
@@ -269,13 +306,20 @@ void FontDecoder::ParseFontDescriptor(PDFParser* inParser, PDFDictionary* inFont
                 }
             }
         }
-        
+
         if(!!missingWidthObject) {
-            defaultWidth = ParsedPrimitiveHelper(missingWidthObject.GetPtr()).GetAsDouble(); 
+            defaultWidth = ParsedPrimitiveHelper(missingWidthObject.GetPtr()).GetAsDouble();
         }
         else {
             defaultWidth = 0;
         }
+    }
+
+    // Fallback: try to get font name from BaseFont if not found in descriptor
+    if(fontName.empty()) {
+        PDFObjectCastPtr<PDFName> baseFontObject = inParser->QueryDictionaryObject(inFont,"BaseFont");
+        if(!!baseFontObject)
+            fontName = baseFontObject->GetValue();
     }
 }
 

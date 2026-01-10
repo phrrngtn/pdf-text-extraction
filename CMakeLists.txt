@@ -5,9 +5,10 @@ project(TextExtraction VERSION 1.1.9)
 option(USE_BIDI  "should support bi-directional text")
 option(SHOULD_PARSE_INTERNAL_TABLES  "should table parsing read internal tables")
 
-
-# hummus dependency
+# Dependencies
 include(FetchContent)
+
+# PDFHummus
 FetchContent_Declare(
   PDFHummus
   URL https://github.com/galkahana/PDF-Writer/archive/refs/tags/v4.8.1.tar.gz
@@ -16,6 +17,16 @@ FetchContent_Declare(
   FIND_PACKAGE_ARGS
 )
 FetchContent_MakeAvailable(PDFHummus)
+
+# nlohmann/json for JSON output
+FetchContent_Declare(
+  json
+  URL https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz
+  URL_HASH SHA256=d6c65aca6b1ed68e7a182f4757257b107ae403032760ed6ef121c9d55e81757d
+  DOWNLOAD_EXTRACT_TIMESTAMP FALSE
+  FIND_PACKAGE_ARGS NAMES nlohmann_json
+)
+FetchContent_MakeAvailable(json)
 
 # local code
 ADD_SUBDIRECTORY(TextExtraction)
@@ -27,8 +38,7 @@ if(PROJECT_IS_TOP_LEVEL AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/TextExtractionTes
     # to the parent project ctest.
     enable_testing()
     ADD_SUBDIRECTORY(TextExtractionTesting)
-  endif()
-
+endif()
 
 # cpack
 include(InstallRequiredSystemLibraries)

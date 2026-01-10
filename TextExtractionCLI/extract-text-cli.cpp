@@ -7,7 +7,10 @@
 
 #include "TextExtraction.h"
 #include "TableExtraction.h"
+#include "TextPlacementReader.h"
 #include "lib/text-composition/TextComposer.h"
+
+#include <nlohmann/json.hpp>
 
 using namespace std;
 using namespace PDFHummus;
@@ -24,6 +27,8 @@ static void ShowUsage(const string& name)
 #endif
               << "\t-p, --spacing <BOTH|HOR|VER|NONE>\tadd spaces between pieces of text considering their relative positions. default is BOTH\n"
               << "\t-t, --tables\t\t\t\textract tables instead of text. Each table is represented in CSV\n"
+              << "\t-i, --iterator\t\t\t\tuse iterator API to output text placements with bounding boxes\n"
+              << "\t-j, --json\t\t\t\twith --iterator, output as JSON (summary line + NDJSON placements)\n"
               << "\t-o, --output /path/to/file\t\twrite result to output file (or files for tables export)\n"
               << "\t-q, --quiet\t\t\t\tquiet run. only shows errors and warnings\n"
               << "\t-h, --help\t\t\t\tShow this help message\n"
@@ -61,6 +66,8 @@ int main(int argc, char* argv[])
     bool quiet = false;
     long bidiFlag = -1;
     bool extractTables = false;
+    bool useIteratorAPI = false;
+    bool jsonOutput = false;
 
     for (int i = 2; i < argc; ++i) {
         std::string arg = argv[i];
@@ -71,6 +78,10 @@ int main(int argc, char* argv[])
             quiet = true;
         } else if ((arg == "-t") || (arg == "--tables")) {
             extractTables = true;
+        } else if ((arg == "-i") || (arg == "--iterator")) {
+            useIteratorAPI = true;
+        } else if ((arg == "-j") || (arg == "--json")) {
+            jsonOutput = true;
         } else if ((arg == "-s") || (arg == "--start")) {
             if (i + 1 < argc) {
                 startPage = Long(argv[++i]);
@@ -145,10 +156,67 @@ int main(int argc, char* argv[])
         }
     }    
 
-    EStatusCode status;
+    EStatusCode status = eSuccess;
     if(debugging) {
         TextExtraction textExtraction;
         status = textExtraction.DecryptPDFForDebugging(filePath, debugPath);
+    } else if(useIteratorAPI) {
+        // Demonstrate the new iterator-based TextPlacementReader API
+        try {
+            TextPlacementReader pdf(filePath);
+
+            if(!quiet) {
+                if(jsonOutput) {
+                    // JSON output mode: summary line + NDJSON placements
+                    // Use the built-in JSON methods from TextPlacementReader
+                    cout << pdf.summary_json().dump() << endl;
+
+                    // Iterate over placements (optionally filtered by page range)
+                    auto range = (startPage != 0 || endPage != -1)
+                        ? pdf.pages(startPage, endPage)
+                        : pdf.pages(0, -1);
+
+                    for (const auto& tp : range) {
+                        cout << tp.to_json().dump() << endl;
+                    }
+                } else {
+                    // Human-readable output
+                    cout << "Pages: " << pdf.pageCount() << endl;
+                    cout << "Text placements: " << pdf.placementCount() << endl;
+                    cout << "Fonts: " << pdf.fonts().size() << endl;
+
+                    // Print font info
+                    for (const auto& [id, font] : pdf.fonts()) {
+                        cout << "  Font " << id << ": " << font.fontName;
+                        if (!font.familyName.empty()) {
+                            cout << " (" << font.familyName << ")";
+                        }
+                        cout << endl;
+                    }
+                    cout << endl;
+
+                    // Iterate over placements (optionally filtered by page range)
+                    auto range = (startPage != 0 || endPage != -1)
+                        ? pdf.pages(startPage, endPage)
+                        : pdf.pages(0, -1);
+
+                    for (const auto& tp : range) {
+                        // Format: page fontID [x, y, width, height] "text"
+                        printf("%lu %lu [%7.2f, %7.2f, %7.2f, %7.2f] %s\n",
+                               tp.pageNumber,
+                               tp.fontID,
+                               tp.bbox[0],
+                               tp.bbox[1],
+                               tp.bbox[2],
+                               tp.bbox[3],
+                               tp.text.c_str());
+                    }
+                }
+            }
+        } catch (const std::exception& e) {
+            cerr << "Error: " << e.what() << endl;
+            status = eFailure;
+        }
     } else {
         if(extractTables) {
             TableExtraction tableExtraction;

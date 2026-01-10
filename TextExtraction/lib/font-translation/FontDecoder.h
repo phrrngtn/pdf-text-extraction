@@ -1,6 +1,7 @@
 #pragma once
 
 #include "IOBasicTypes.h"
+#include "ObjectsBasicTypes.h"
 #include "Translation.h"
 #include "../pdf-writer-enhancers/Bytes.h"
 #include "../graphs/Result.h"
@@ -30,17 +31,41 @@ struct FontDecoderResult {
     ETranslationMethod translationMethod;
 };
 
-class FontDecoder {
-
-public:
-    FontDecoder(PDFParser* inParser, PDFDictionary* inFont);
-
-    FontDecoderResult Translate(const ByteList& inAsBytes);
-    DispositionResultList ComputeDisplacements(const ByteList& inAsBytes);
-
+// Font metadata structure for external API
+struct FontInfo {
+    ObjectIDType fontID;
+    std::string familyName;
+    std::string fontName;
+    std::string fontStretch;
+    int fontWeight;
+    int fontFlags;
     double ascent;
     double descent;
     double spaceWidth;
+};
+
+typedef std::map<ObjectIDType, FontInfo> FontInfoMap;
+
+class FontDecoder {
+
+public:
+    FontDecoder(PDFParser* inParser, PDFDictionary* inFont, ObjectIDType inFontID = 0);
+
+    FontDecoderResult Translate(const ByteList& inAsBytes);
+    DispositionResultList ComputeDisplacements(const ByteList& inAsBytes);
+    FontInfo GetFontInfo() const;
+
+    ObjectIDType fontID;
+    double ascent;
+    double descent;
+    double spaceWidth;
+
+    // Font metadata (extracted from FontDescriptor)
+    std::string familyName;
+    std::string fontName;
+    std::string fontStretch;
+    int fontWeight;
+    int fontFlags;
 private:
     bool isSimpleFont;
     bool hasToUnicode;

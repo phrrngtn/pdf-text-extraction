@@ -2,13 +2,13 @@
 
 #include "../graphic-content-parsing/TextElement.h"
 #include "../graphic-content-parsing/Resources.h"
+#include "../font-translation/FontDecoder.h"
 
 #include "ITextInterpreterHandler.h"
 
 #include "ObjectsBasicTypes.h"
 #include "RefCountPtr.h"
 
-class FontDecoder;
 class PDFObject;
 
 #include <map>
@@ -19,7 +19,7 @@ struct LessRefCountPDFObject {
     bool operator()( const RefCountPtr<PDFObject>& lhs, const RefCountPtr<PDFObject>& rhs ) const {
         return lhs.GetPtr() < rhs.GetPtr();
     }
-};  
+};
 
 typedef std::map<ObjectIDType, FontDecoder> ObjectIDTypeToFontDecoderMap;
 typedef std::map<RefCountPtr<PDFObject>, FontDecoder,  LessRefCountPDFObject> PDFObjectToFontDecoderMap;
@@ -39,13 +39,18 @@ class TextInterpeter {
         bool OnResourcesRead(const Resources& inResources, IInterpreterContext* inContext);
 
         void ResetInterpretationState();
+
+        // Get font information for all parsed fonts
+        FontInfoMap GetFontInfoMap() const;
     private:
         ITextInterpreterHandler* handler;
 
         // font decoders parsed data
         ObjectIDTypeToFontDecoderMap refrencedFontDecoders;
         PDFObjectToFontDecoderMap embeddedFontDecoders;
-        
-        FontDecoder* GetDecoderForFont(PDFObject* inFontReference);     
+        ObjectIDType nextEmbeddedFontID; // synthetic ID for embedded fonts
+
+        FontDecoder* GetDecoderForFont(PDFObject* inFontReference);
+        ObjectIDType GetFontID(PDFObject* inFontReference);
 
 };

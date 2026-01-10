@@ -70,8 +70,11 @@ EStatusCode TextExtraction::ExtractTextPlacements(PDFParser* inParser, long inSt
 
         textsForPages.push_back(ParsedTextPlacementList());
         // the interpreter will trigger the textInterpreter which in turn will trigger this object to collect text elements
-        interpreter.InterpretPageContents(inParser, pageObject.GetPtr(), this);  
-    }    
+        interpreter.InterpretPageContents(inParser, pageObject.GetPtr(), this);
+    }
+
+    // Save font info before resetting interpreter state
+    fontInfoMap = textInterpeter.GetFontInfoMap();
 
     textInterpeter.ResetInterpretationState();
 
@@ -82,6 +85,7 @@ static const string scEmpty = "";
 
 void TextExtraction::ClearState() {
     textsForPages.clear();
+    fontInfoMap.clear();
     LatestWarnings.clear();
     LatestError.code = eErrorNone;
     LatestError.description = scEmpty;
@@ -152,6 +156,10 @@ PDFHummus::EStatusCode TextExtraction::ExtractText(IByteReaderWithPosition* inSt
 }
 
 static const string scCRLN = "\r\n";
+
+FontInfoMap TextExtraction::GetFontInfoMap() const {
+    return fontInfoMap;
+}
 
 void TextExtraction::GetResultsAsText(int bidiFlag, TextComposer::ESpacing spacingFlag, std::ostream& outStream) {
     ParsedTextPlacementListList::iterator itPages = textsForPages.begin();

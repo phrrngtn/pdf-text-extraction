@@ -7,6 +7,7 @@
 #include "./lib/text-composition/TextComposer.h"
 #include "./lib/graphic-content-parsing/IGraphicContentInterpreterHandler.h"
 #include "./lib/text-parsing/TextInterpreter.h"
+#include "./lib/font-translation/FontDecoder.h"
 
 #include "ErrorsAndWarnings.h"
 
@@ -32,10 +33,11 @@ class TextExtraction : public ITextInterpreterHandler, IGraphicContentInterprete
         PDFHummus::EStatusCode ExtractText(IByteReaderWithPosition* inStream, long inStartPage=0, long inEndPage=-1);
 
         ExtractionError LatestError;
-        ExtractionWarningList LatestWarnings;  
+        ExtractionWarningList LatestWarnings;
 
-        // end result construct
+        // end result constructs
         ParsedTextPlacementListList textsForPages;
+        FontInfoMap fontInfoMap;
 
         // just descrypt input file to its easier to read its contnets
         PDFHummus::EStatusCode DecryptPDFForDebugging(
@@ -44,6 +46,9 @@ class TextExtraction : public ITextInterpreterHandler, IGraphicContentInterprete
         );
 
         void GetResultsAsText(int bidiFlag, TextComposer::ESpacing spacingFlag, std::ostream& outStream);
+
+        // Get font information for all parsed fonts
+        FontInfoMap GetFontInfoMap() const;
 
         // IGraphicContentInterpreterHandler implementation
         virtual bool OnTextElementComplete(const TextElement& inTextElement);

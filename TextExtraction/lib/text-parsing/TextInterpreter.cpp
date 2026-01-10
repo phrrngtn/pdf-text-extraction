@@ -18,12 +18,17 @@ using namespace std;
 
 static const string scSpace = " ";
 
+// Use high starting ID for embedded fonts to avoid collisions with object IDs
+static const ObjectIDType EMBEDDED_FONT_ID_START = 0x80000000UL;
+
 TextInterpeter::TextInterpeter(void) {
     SetHandler(NULL);
+    nextEmbeddedFontID = EMBEDDED_FONT_ID_START;
 }
 
 TextInterpeter::TextInterpeter(ITextInterpreterHandler* inHandler) {
     SetHandler(inHandler);
+    nextEmbeddedFontID = EMBEDDED_FONT_ID_START;
 }
 
 
@@ -34,6 +39,39 @@ TextInterpeter::~TextInterpeter(void) {
 void TextInterpeter::ResetInterpretationState() {
     refrencedFontDecoders.clear();
     embeddedFontDecoders.clear();
+    nextEmbeddedFontID = EMBEDDED_FONT_ID_START;
+}
+
+FontInfoMap TextInterpeter::GetFontInfoMap() const {
+    FontInfoMap result;
+
+    // Add referenced fonts
+    for(ObjectIDTypeToFontDecoderMap::const_iterator it = refrencedFontDecoders.begin();
+        it != refrencedFontDecoders.end(); ++it) {
+        result[it->first] = it->second.GetFontInfo();
+    }
+
+    // Add embedded fonts
+    for(PDFObjectToFontDecoderMap::const_iterator it = embeddedFontDecoders.begin();
+        it != embeddedFontDecoders.end(); ++it) {
+        result[it->second.fontID] = it->second.GetFontInfo();
+    }
+
+    return result;
+}
+
+ObjectIDType TextInterpeter::GetFontID(PDFObject* inFontReference) {
+    if(!inFontReference)
+        return 0;
+
+    if(inFontReference->GetType() == PDFObject::ePDFObjectDictionary) {
+        PDFObjectToFontDecoderMap::iterator it = embeddedFontDecoders.find(inFontReference);
+        return it == embeddedFontDecoders.end() ? 0 : it->second.fontID;
+    }
+    else if(inFontReference->GetType() == PDFObject::ePDFObjectIndirectObjectReference) {
+        return ((PDFIndirectObjectReference*)(inFontReference))->mObjectID;
+    }
+    return 0;
 }
 
 FontDecoder* TextInterpeter::GetDecoderForFont(PDFObject* inFontReference) {
@@ -82,6 +120,8 @@ bool TextInterpeter::OnTextElementComplete(const TextElement& inTextElement) {
         FontDecoder* decoder = GetDecoderForFont(item.textState.fontRef.GetPtr());
         if(!decoder)
             continue;
+
+        ObjectIDType currentFontID = GetFontID(item.textState.fontRef.GetPtr());
 
         CopyMatrix(itemTextStateTm, nextPlacementDefaultTm);
         hasDefaultTm = true;
@@ -138,12 +178,12 @@ bool TextInterpeter::OnTextElementComplete(const TextElement& inTextElement) {
 
                 ParsedTextPlacement placement(
                         result.asText,
+                        currentFontID,
                         matrixBuffer,
                         localBBox,
                         globalBBox,
                         spaceWidth,
                         globalWidthVector
-
                 );
 
                 shouldContinue = handler->OnParsedTextPlacementComplete(placement);
@@ -171,15 +211,18 @@ bool TextInterpeter::OnResourcesRead(const Resources& inResources, IInterpreterC
     // used to both translate and compute dimensions of texts, as the text gets intepreted
     StringToFontMap::const_iterator it = inResources.fonts.begin();
     for(; it != inResources.fonts.end(); ++it) {
-        // 
 
         if(it->second.fontRef.GetPtr()->GetType() == PDFObject::ePDFObjectDictionary) {
             RefCountPtr<PDFObject> fontDict = it->second.fontRef.GetPtr();
             // embedded, check cache first
             PDFObjectToFontDecoderMap::const_iterator itFont = embeddedFontDecoders.find(fontDict);
             if(itFont == embeddedFontDecoders.end()) {
-                // ok. there's none, use this chance to create a new one
-                embeddedFontDecoders.insert(PDFObjectToFontDecoderMap::value_type(fontDict, FontDecoder(inContext->GetParser(), (PDFDictionary*)fontDict.GetPtr())));
+                // ok. there's none, use this chance to create a new one with synthetic fontID
+                ObjectIDType syntheticID = nextEmbeddedFontID++;
+                embeddedFontDecoders.insert(PDFObjectToFontDecoderMap::value_type(
+                    fontDict,
+                    FontDecoder(inContext->GetParser(), (PDFDictionary*)fontDict.GetPtr(), syntheticID)
+                ));
             }
         }
         else if(it->second.fontRef.GetPtr()->GetType() == PDFObject::ePDFObjectIndirectObjectReference) {
@@ -189,8 +232,11 @@ bool TextInterpeter::OnResourcesRead(const Resources& inResources, IInterpreterC
                 PDFObjectCastPtr<PDFDictionary> fontDict = inContext->GetParser()->ParseNewObject(id);
                 if(!fontDict)
                     continue; // ignore
-                refrencedFontDecoders.insert(ObjectIDTypeToFontDecoderMap::value_type(id, FontDecoder(inContext->GetParser(), fontDict.GetPtr())));
-            }        
+                refrencedFontDecoders.insert(ObjectIDTypeToFontDecoderMap::value_type(
+                    id,
+                    FontDecoder(inContext->GetParser(), fontDict.GetPtr(), id)
+                ));
+            }
         }
     }
 

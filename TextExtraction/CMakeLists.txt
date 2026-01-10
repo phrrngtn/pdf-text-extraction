@@ -68,11 +68,18 @@ TableExtraction.cpp
 TableExtraction.h
 TextExtraction.cpp
 TextExtraction.h
+TextPlacementReader.cpp
+TextPlacementReader.h
 )
 
 add_library(TextExtraction::TextExtraction ALIAS TextExtraction)
 
 target_link_libraries (TextExtraction PDFHummus::PDFWriter)
+# nlohmann_json is header-only, just need include path (avoid export issues)
+target_include_directories(TextExtraction PUBLIC
+    $<BUILD_INTERFACE:${json_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+)
 
 if(SHOULD_PARSE_INTERNAL_TABLES)
     target_compile_definitions(TextExtraction PRIVATE SHOULD_PARSE_INTERNAL_TABLES)  
