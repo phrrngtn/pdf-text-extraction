@@ -211,6 +211,18 @@ nlohmann::json TextPlacementReader::summary_json() const {
     return summary;
 }
 
+std::string TextPlacementReader::summary_json_string() const {
+    return summary_json().dump();
+}
+
+std::string TextPlacementReader::placements_json_string() const {
+    nlohmann::json placements = nlohmann::json::array();
+    for (const auto& tp : impl_->placements) {
+        placements.push_back(tp);  // Uses ADL to_json for TextPlacement
+    }
+    return placements.dump();
+}
+
 TextPlacementReader::Iterator TextPlacementReader::begin() const {
     return Iterator(this, 0);
 }

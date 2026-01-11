@@ -146,6 +146,16 @@ public:
     nlohmann::json summary_json() const;
 
     /**
+     * Get document summary as a JSON string.
+     */
+    std::string summary_json_string() const;
+
+    /**
+     * Get all placements as a JSON array string.
+     */
+    std::string placements_json_string() const;
+
+    /**
      * Get an iterator to the beginning of all text placements.
      */
     Iterator begin() const;
